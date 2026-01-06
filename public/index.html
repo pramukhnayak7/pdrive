@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>storge</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .card { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { cursor: pointer; background: #0070f3; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; }
+        button:hover { background: #0051a8; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 0.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        a { text-decoration: none; color: #333; font-weight: bold; }
+        a:hover { color: #0070f3; }
+    </style>
+</head>
+<body>
+    <h1>pdrive</h1>
+
+    <div class="card">
+        <h3>Upload File</h3>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">Upload</button>
+        <p id="status" style="color: gray; font-size: 0.9rem; margin-top: 5px;"></p>
+    </div>
+
+    <div class="card">
+        <h3>My Files</h3>
+        <ul id="fileList">
+            <li>Loading files...</li>
+        </ul>
+    </div>
+
+    <script>
+        // 1. Function to fetch the list of files from Rust
+        async function loadFiles() {
+            const response = await fetch('/api/files');
+            const files = await response.json();
+            
+            const list = document.getElementById('fileList');
+            list.innerHTML = ""; // Clear current list
+
+            if (files.length === 0) {
+                list.innerHTML = "<li>No files found.</li>";
+                return;
+            }
+
+            files.forEach(fileName => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="/files/${fileName}" target="_blank">📄 ${fileName}</a>`;
+                list.appendChild(li);
+            });
+        }
+
+        // 2. Function to upload a file
+        async function uploadFile() {
+            const input = document.getElementById('fileInput');
+            const status = document.getElementById('status');
+            
+            if (!input.files[0]) {
+                alert("Please select a file first!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+
+            status.innerText = "Uploading...";
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    status.innerText = "✅ Upload successful!";
+                    input.value = ""; // Clear input
+                    loadFiles(); // Refresh the list
+                } else {
+                    status.innerText = "❌ Upload failed.";
+                }
+            } catch (error) {
+                console.error(error);
+                status.innerText = "❌ Error uploading.";
+            }
+        }
+
+        // Load files when the page opens
+        loadFiles();
+    </script>
+</body>
+</html>
